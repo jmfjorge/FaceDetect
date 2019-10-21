@@ -1,0 +1,152 @@
+object FmPrincipal: TFmPrincipal
+  Left = 0
+  Top = 0
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'FaceDetect'
+  ClientHeight = 599
+  ClientWidth = 867
+  Color = clBtnFace
+  DoubleBuffered = True
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -16
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  KeyPreview = True
+  OldCreateOrder = False
+  Position = poScreenCenter
+  SnapBuffer = 100
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 19
+  object Image1: TImage
+    Left = 1
+    Top = 56
+    Width = 640
+    Height = 480
+  end
+  object Image2: TImage
+    Left = 659
+    Top = 56
+    Width = 200
+    Height = 200
+    ParentShowHint = False
+    ShowHint = True
+    Stretch = True
+  end
+  object Label1: TLabel
+    Left = 1
+    Top = 533
+    Width = 15
+    Height = 58
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -48
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+  end
+  object LabelTimer: TLabel
+    Left = 659
+    Top = 334
+    Width = 112
+    Height = 24
+    Caption = 'LabelTimer'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clRed
+    Font.Height = -20
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Button1: TButton
+    Left = 264
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'Capturar'
+    TabOrder = 1
+    OnClick = Button1Click
+  end
+  object Button2: TButton
+    Left = 168
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'Limpar'
+    TabOrder = 0
+    OnClick = Button2Click
+  end
+  object Button3: TButton
+    Left = 360
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'Carregar'
+    TabOrder = 2
+    OnClick = Button3Click
+  end
+  object Edit1: TEdit
+    Left = 659
+    Top = 262
+    Width = 200
+    Height = 27
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clMedGray
+    Font.Height = -16
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 3
+    Text = 'Digite um nome'
+    OnChange = Edit1Change
+    OnEnter = Edit1Enter
+    OnExit = Edit1Exit
+  end
+  object Button4: TButton
+    Left = 659
+    Top = 295
+    Width = 200
+    Height = 25
+    Caption = 'Salvar'
+    Enabled = False
+    TabOrder = 4
+    OnClick = Button4Click
+  end
+  object Button5: TButton
+    Left = 456
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'Rostos'
+    TabOrder = 5
+    OnClick = Button5Click
+  end
+  object CheckDetectEyes: TCheckBox
+    Left = 659
+    Top = 519
+    Width = 122
+    Height = 17
+    Caption = 'Detectar olhos'
+    TabOrder = 6
+  end
+  object SavePictureDialog1: TSavePictureDialog
+    Filter = 'Bitmaps (*.bmp)|*.bmp'
+    FilterIndex = 2
+    Left = 824
+    Top = 336
+  end
+  object OpenPictureDialog1: TOpenPictureDialog
+    Filter = 'Bitmaps (*.bmp)|*.bmp'
+    FilterIndex = 2
+    Left = 576
+    Top = 8
+  end
+  object Timer1: TTimer
+    OnTimer = Timer1Timer
+    Left = 344
+    Top = 160
+  end
+end

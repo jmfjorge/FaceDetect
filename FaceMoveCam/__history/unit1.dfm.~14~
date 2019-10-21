@@ -1,0 +1,75 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'Exemplo Facedetect - MoveCam'
+  ClientHeight = 528
+  ClientWidth = 645
+  Color = clBtnFace
+  DoubleBuffered = True
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -16
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  FormStyle = fsStayOnTop
+  KeyPreview = True
+  OldCreateOrder = False
+  Position = poScreenCenter
+  ScreenSnap = True
+  SnapBuffer = 100
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 19
+  object Image1: TImage
+    Left = 2
+    Top = 3
+    Width = 640
+    Height = 480
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 490
+    Width = 645
+    Height = 38
+    Align = alBottom
+    BevelOuter = bvNone
+    TabOrder = 0
+    ExplicitTop = 489
+    object Button1: TButton
+      Left = 567
+      Top = 2
+      Width = 75
+      Height = 27
+      Caption = 'Enviar'
+      TabOrder = 0
+    end
+    object Edit1: TEdit
+      Left = 440
+      Top = 2
+      Width = 121
+      Height = 27
+      TabOrder = 1
+    end
+  end
+  object ComPort1: TComPort
+    BaudRate = br9600
+    Port = 'COM1'
+    Parity.Bits = prNone
+    StopBits = sbOneStopBit
+    DataBits = dbEight
+    Events = [evRxChar, evTxEmpty, evRxFlag, evRing, evBreak, evCTS, evDSR, evError, evRLSD, evRx80Full]
+    FlowControl.OutCTSFlow = False
+    FlowControl.OutDSRFlow = False
+    FlowControl.ControlDTR = dtrDisable
+    FlowControl.ControlRTS = rtsDisable
+    FlowControl.XonXoffOut = False
+    FlowControl.XonXoffIn = False
+    StoredProps = [spBasic]
+    TriggersOnRxChar = True
+    Left = 24
+    Top = 32
+  end
+end

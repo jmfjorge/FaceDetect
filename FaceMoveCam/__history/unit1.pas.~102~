@@ -1,0 +1,327 @@
+unit unit1;
+
+interface
+
+uses
+  ocv.imgproc_c,
+  ocv.imgproc.types_c,
+  ocv.core.types_c,
+  ocv.core_c,
+  ocv.highgui_c,
+  ocv.objdetect_c,
+  ocv.utils,
+  ocv.cls.contrib,
+  ocv.legacy,
+
+  Windows,
+  Messages,
+  SysUtils,
+  Variants,
+  Classes,
+  Graphics,
+  Controls,
+  Forms,
+  Dialogs,
+  ExtCtrls,
+  StdCtrls,
+  IniFiles, CPort;
+
+type
+  TForm1 = class(TForm)
+    ImagePreview: TImage;
+    Panel1: TPanel;
+    ComPort1: TComPort;
+    Button1: TButton;
+    Edit1: TEdit;
+    TimerMonitor: TTimer;
+    procedure FormCreate(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure Button1Click(Sender: TObject);
+    procedure Edit1KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure TimerMonitorTimer(Sender: TObject);
+
+  private
+    m_oFrameBitmap: TBitmap;
+    m_bSessionEnding: Boolean;
+    m_iCameraIndex: Integer;
+    m_iPosX  : Integer;
+    m_iPosY  : Integer;
+    m_iSinal : Integer;
+    CascadeFile: AnsiString;
+    ClassCascade: pCvHaarClassifierCascade;
+
+    MyCapture: pCvCapture;
+    MyInputImage: pIplImage;
+    MyStorage: pCvMemStorage;
+
+    procedure StartCapture(iCamNum : Integer);
+    procedure StopCapture;
+    procedure OnIdle(Sender: TObject; var Done: Boolean);
+    procedure WMQueryEndSession(var Message: TMessage); message WM_QUERYENDSESSION;
+    procedure DetectAndDraw();
+    procedure ReadConfig;
+    procedure SendStringToPort(sComando : String);
+    procedure SetupCamPos;
+    procedure SendPosXY(iPosX, iPosY : Integer);
+    procedure SetupCamPatrolPosition(iPosX, iPosY : Integer);
+    procedure VerificaMinMaxCam;
+  public
+    //
+  protected
+    //
+  end;
+
+var
+Form1: TForm1;
+
+implementation
+{$R *.dfm}
+
+
+procedure TForm1.WMQueryEndSession(var Message: TMessage);
+begin
+  m_bSessionEnding := True;
+  Message.Result := 1;
+end;
+
+procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  if not m_bSessionEnding then
+  begin
+    StopCapture;
+    Halt;
+  end;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  m_iPosX := 90;
+  m_iPosY := 120;
+  m_iSinal := 3;
+  CascadeFile:= 'face.xml';
+  ClassCascade:=nil;
+  ReadConfig;
+  StartCapture(m_iCameraIndex);
+  TimerMonitor.Enabled:=True;
+end;
+
+procedure TForm1.StopCapture;
+begin
+  Application.OnIdle := nil;
+  cvReleaseCapture(MyCapture);
+  m_oFrameBitmap.Free;
+end;
+
+procedure TForm1.VerificaMinMaxCam;
+begin
+  if m_iPosX>180 then
+    m_iPosX:=180;
+  if m_iPosX<0 then
+    m_iPosX:=0;
+  if m_iPosY>180 then
+    m_iPosY:=180;
+  if m_iPosY<72 then
+    m_iPosX:=72;
+end;
+
+procedure TForm1.SetupCamPos;
+begin
+  Inc(m_iPosX, m_iSinal);
+  if m_iPosX>=180  then
+  begin
+    m_iSinal:=-3;
+    m_iPosY := 120;
+  end;
+  if m_iPosX<=0  then
+  begin
+    m_iSinal:=3;
+    m_iPosY := 120;
+  end;
+  SendPosXY(m_iPosX,m_iPosY);
+end;
+
+procedure TForm1.TimerMonitorTimer(Sender: TObject);
+begin
+  if TimerMonitor.Tag>50 then
+  begin
+    SetupCamPos;
+  end
+  else
+    TimerMonitor.Tag:=TimerMonitor.Tag+1;
+end;
+
+procedure TForm1.StartCapture(iCamNum : Integer);
+begin
+  m_oFrameBitmap := TBitmap.Create;
+  m_oFrameBitmap.PixelFormat := pf24bit;
+
+  MyCapture := cvCreateCameraCapture(iCamNum);
+
+  ClassCascade := cvLoad(pCVChar(@CascadeFile[1]), nil, nil, nil);
+  if not Assigned(ClassCascade) then
+  begin
+    ShowMessage('ERROR: Could not load cascade.');
+    Halt;
+  end;
+
+  MyStorage := cvCreateMemStorage(0);
+  if Assigned(MyCapture) then Application.OnIdle := OnIdle
+  else
+    Exit;
+end;
+
+procedure TForm1.OnIdle(Sender: TObject; var Done: Boolean);
+begin
+  MyInputImage := cvQueryFrame(MyCapture);
+  if (not Assigned(MyInputImage)) then Application.OnIdle := nil
+  else
+  begin
+    DetectAndDraw();
+    IplImage2Bitmap(MyInputImage, m_oFrameBitmap);
+    ImagePreview.Picture.Graphic := m_oFrameBitmap;
+    Done := False;
+  end;
+end;
+
+procedure TForm1.Edit1KeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+ if Key=13 then
+   Button1.Click;
+end;
+
+procedure TForm1.SendPosXY(iPosX, iPosY : Integer);
+var
+  sCommand : String;
+begin
+  VerificaMinMaxCam;
+  sCommand:=FormatFloat('000',m_iPosX)+FormatFloat('000',m_iPosY)+#10#13;
+  SendStringToPort(sCommand);
+end;
+
+procedure TForm1.SendStringToPort(sComando : String);
+begin
+  try
+    ComPort1.WriteStr(sComando);
+  except
+  end;
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  SendStringToPort(Edit1.Text+#10#13);
+  TimerMonitor.Tag:=0;
+end;
+
+procedure TForm1.DetectAndDraw();
+var
+  iIndex : Integer;
+  inputObject: pCvSeq;
+  ObjectOutimage: pCvRect;
+  inputPt1, inputPt2: TCvPoint;
+  cColor : TCvScalar;
+begin
+  inputObject := cvHaarDetectObjects(MyInputImage, ClassCascade, MyStorage, 1.1, 10,
+                                   CV_HAAR_SCALE_IMAGE, cvSize(90, 90), cvSize(0, 0));
+  cvClearMemStorage(MyStorage);
+  if inputObject.total=0 then exit;
+  for iIndex := 1 to inputObject^.total do
+  begin
+    ObjectOutimage := pCvRect(cvGetSeqElem(inputObject, iIndex));
+    inputPt1.x := ObjectOutimage^.x;
+    inputPt2.x := (ObjectOutimage^.x + ObjectOutimage^.width);
+    inputPt1.y := ObjectOutimage^.y;
+    inputPt2.y := (ObjectOutimage^.y + ObjectOutimage^.height);
+    if ((Abs(((inputPt1.x + inputPt2.x) div 2) - ImagePreview.Width/2)<50) and
+        (Abs(((inputPt1.y + inputPt2.y) div 2) - ImagePreview.Height/2)<50)) then
+    begin
+      cColor:=CV_RGB(255, 0, 0);
+      cvRectangle(MyInputImage, inputPt1, inputPt2, cColor, 2, 8, 0);
+      inputPt1.x := ObjectOutimage^.x- 7;
+      inputPt2.x := (ObjectOutimage^.x + ObjectOutimage^.width) + 7;
+      inputPt1.y := ObjectOutimage^.y - 7;
+      inputPt2.y := (ObjectOutimage^.y + ObjectOutimage^.height) + 7;
+      cvRectangle(MyInputImage, inputPt1, inputPt2, cColor, 2, 8, 0);
+      cvPutText(MyInputImage, 'HUMANO', cvPoint(inputPt1.x, inputPt1.y - 30), @font, cColor);
+    end
+   else
+   begin
+     cColor:=CV_RGB(0, 0, 255);
+      cvRectangle(MyInputImage, inputPt1, inputPt2, cColor, 2, 8, 0);
+   end;
+
+
+    SetupCamPatrolPosition((inputPt1.x + inputPt2.x) div 2, (inputPt1.y + inputPt2.y) div 2);
+  end;
+end;
+
+procedure TForm1.SetupCamPatrolPosition(iPosX, iPosY : Integer);
+var
+  iDif : Integer;
+  bPos : Boolean;
+begin
+  TimerMonitor.Tag:=0;
+  iDif:=Round(Abs(iPosX-ImagePreview.Width/2));
+  bPos:=False;
+  if iDif>50 then
+  begin
+     if (iPosX>ImagePreview.Width/2) then
+     begin
+        m_iPosX:=m_iPosX - Round(10*iDif/ImagePreview.Width);
+        m_iSinal:=-3;
+        TimerMonitor.Tag:=45;
+     end
+     else
+     if (iPosX<ImagePreview.Width/2) then
+     begin
+        m_iPosX:=m_iPosX + Round(10*iDif/ImagePreview.Width);
+        m_iSinal:=3;
+        TimerMonitor.Tag:=45;
+     end;
+     bPos:=True;
+  end;
+  iDif:=Round(Abs(iPosY-ImagePreview.Height/2));
+  if iDif>50 then
+  begin
+     if (iPosY<ImagePreview.Height/2) then
+     begin
+       m_iPosY:=m_iPosY - Round(10*iDif/ImagePreview.Height);
+     end
+     else
+     if (iPosY>ImagePreview.Height/2) then
+     begin
+       m_iPosY:=m_iPosY + Round(10*iDif/ImagePreview.Height);
+     end;
+     bPos:=True;
+  end;
+  if bPos then
+    SendPosXY(m_iPosX, m_iPosY);
+
+end;
+
+procedure TForm1.ReadConfig;
+var
+ iComPort  : Integer;
+ iBaudRate : Integer;
+ oAppINI   : TInifile;
+begin
+  oAppINI := TIniFile.Create(ChangeFileExt(Application.ExeName,'.ini')) ;
+  try
+     iComPort := oAppINI.ReadInteger( 'Connection','Port',1) ;
+     iBaudRate := oAppINI.ReadInteger('Connection','BaudRate',9600) ;
+     m_iCameraIndex := oAppINI.ReadInteger('Camera','Index',0) ;
+  finally
+     oAppINI.Free;
+  end;
+  ComPort1.Port:='COM'+iComPort.ToString;
+  ComPort1.BaudRate:=StrToBaudRate(iBaudRate.ToString);
+  try
+    ComPort1.Open;
+    SendPosXY(m_iPosX,m_iPosY);
+  except
+    On E : Exception do
+      Showmessage(E.Message);
+  end;
+end;
+
+end.

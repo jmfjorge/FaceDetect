@@ -1,0 +1,26 @@
+program FaceDetectApp;
+
+uses
+  Vcl.Forms,
+  Vcl.Themes,
+  Vcl.Styles,
+  Windows,
+  untPrincipal in 'untPrincipal.pas' {FmPrincipal},
+  unitFaces in 'unitFaces.pas' {formfaces};
+
+{$R project1.res}
+var
+Mutex : THandle;
+begin
+  Mutex := CreateMutex(nil, True, 'delphifacedetect');
+  if (Mutex = 0) or (GetLastError <> 0) then halt;
+  Application.Initialize;
+  Application.MainFormOnTaskbar := True;
+  //Application.MainForm.HandleNeeded;
+  TStyleManager.TrySetStyle('Carbon');
+  Application.Title := 'FaceDetect';
+  Application.CreateForm(TFmPrincipal, FmPrincipal);
+  Application.CreateForm(Tformfaces, formfaces);
+  Application.Run;
+end.
+
